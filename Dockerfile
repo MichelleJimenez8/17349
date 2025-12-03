@@ -1,11 +1,17 @@
-#a partir de que imagen se creara la nueva
-FROM alpine 
+# Etapa 1: construir el JAR
+from rrojano/spring-boot as fuente
+workdir /app 
 
-RUN apk add nginx
-#RUN nginx 
-CMD ["nginx", "-g", "daemon off;"]
-#puerto
-EXPOSE 80
+COPY SaludarDatos/pom.xml .
+RUN mvn dependency:go-offline
+COPY SaludarDatos/src ./src
+RUN mvn -DskipTests clean package
 
-COPY ./ordinario-ftw /var/lib/nginx/html
-COPY ./default.conf /etc/nginx/http.d/default.conf
+# Etapa 2: imagen final
+FROM rrojano/spring-boot
+WORKDIR /app
+
+# Copiar el JAR generado en la etapa anterior
+COPY --from=fuente /app/target/*.jar app.jar
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
